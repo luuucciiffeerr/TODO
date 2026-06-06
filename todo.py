@@ -2,7 +2,7 @@
 """
 todo — ultra-light personal CLI task manager with nested tags
 Encrypted, per-user, cross-platform. Lives entirely in your terminal.
-See: todo --help | https://github.com/luuucciiffeerr/todo
+See: todo --help | https://github.com/luuucciiffeerr/TODO
 """
 
 __version__ = "1.0.0"

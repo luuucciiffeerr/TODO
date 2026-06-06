@@ -3,13 +3,13 @@
 #  todo — install script for Linux & macOS
 #  Usage:  bash install.sh
 #  Or one-liner from GitHub:
-#    curl -fsSL https://raw.githubusercontent.com/luuucciiffeerr/todo/main/install.sh | bash
+#    curl -fsSL https://raw.githubusercontent.com/luuucciiffeerr/TODO/main/install.sh | bash
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
 VERSION="1.0.0"
-REPO_URL="https://raw.githubusercontent.com/luuucciiffeerr/todo/main"
+REPO_URL="https://raw.githubusercontent.com/luuucciiffeerr/TODO/main"
 SCRIPT_NAME="todo.py"
 WRAPPER_NAME="todo"
 
@@ -213,5 +213,5 @@ echo -e "  ${CYAN}todo -a my first task${RST}"
 echo -e "  ${CYAN}todo --help${RST}"
 blank
 echo -e "${DIM}Data lives at: ~/.local/share/todo/tasks.json${RST}"
-echo -e "${DIM}Docs:          https://github.com/luuucciiffeerr/todo${RST}"
+echo -e "${DIM}Docs:          https://github.com/luuucciiffeerr/TODO${RST}"
 blank

@@ -2,12 +2,12 @@
 #  todo — Windows install script (PowerShell)
 #  Usage:  .\install.ps1
 #  Or one-liner from GitHub:
-#    irm https://raw.githubusercontent.com/luuucciiffeerr/todo/main/install.ps1 | iex
+#    irm https://raw.githubusercontent.com/luuucciiffeerr/TODO/main/install.ps1 | iex
 # ─────────────────────────────────────────────────────────────────────────────
 
 $ErrorActionPreference = "Stop"
 $VERSION = "1.0.0"
-$REPO_URL = "https://raw.githubusercontent.com/luuucciiffeerr/todo/main"
+$REPO_URL = "https://raw.githubusercontent.com/luuucciiffeerr/TODO/main"
 
 # ── Colours ──────────────────────────────────────────────────────────────────
 function Write-Info    { param($msg) Write-Host "  [>] $msg" -ForegroundColor Cyan }
@@ -175,5 +175,5 @@ Write-Host "    todo -a my first task" -ForegroundColor Cyan
 Write-Host "    todo --help" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Data lives at: $env:APPDATA\todo\tasks.json" -ForegroundColor DarkGray
-Write-Host "  Docs:          https://github.com/luuucciiffeerr/todo" -ForegroundColor DarkGray
+Write-Host "  Docs:          https://github.com/luuucciiffeerr/TODO" -ForegroundColor DarkGray
 Write-Host ""

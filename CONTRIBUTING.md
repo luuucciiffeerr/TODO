@@ -12,7 +12,7 @@ Thanks for wanting to improve todo. Here's how.
 ## Getting started
 
 ```bash
-git clone https://github.com/luuucciiffeerr/todo.git
+git clone https://github.com/luuucciiffeerr/TODO.git
 cd todo
 python todo.py --help       # test the local copy
 ```

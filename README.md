@@ -57,13 +57,13 @@ $ todo
 **One-line install:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/luuucciiffeerr/todo/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/luuucciiffeerr/TODO/main/install.sh | bash
 ```
 
 **Or clone and run:**
 
 ```bash
-git clone https://github.com/luuucciiffeerr/todo.git
+git clone https://github.com/luuucciiffeerr/TODO.git
 cd todo
 bash install.sh
 ```
@@ -79,13 +79,13 @@ The installer will:
 **One-line install (PowerShell):**
 
 ```powershell
-irm https://raw.githubusercontent.com/luuucciiffeerr/todo/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/luuucciiffeerr/TODO/main/install.ps1 | iex
 ```
 
 **Or clone and run:**
 
 ```powershell
-git clone https://github.com/luuucciiffeerr/todo.git
+git clone https://github.com/luuucciiffeerr/TODO.git
 cd todo
 .\install.ps1
 ```
