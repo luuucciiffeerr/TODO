@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>todo — ultra-light CLI task manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0a0a0a;
+    --canvas: #ffffff;
+    --cloud: #f4f4f4;
+    --mute: #888;
+    --hair: #d8d8d8;
+    --green: #00c66b;
+    --cyan: #00d4ff;
+    --red: #ff3b3b;
+    --yellow: #ffd600;
+    --dim: rgba(0,0,0,0.4);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--canvas);
+    color: var(--ink);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── HERO ──────────────────────────────────────────────────────── */
+  .hero {
+    background: var(--ink);
+    color: var(--canvas);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.015) 2px,
+      rgba(255,255,255,0.015) 4px
+    );
+    pointer-events: none;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(96px, 18vw, 200px);
+    line-height: 0.88;
+    letter-spacing: -0.01em;
+    text-align: center;
+    color: var(--canvas);
+    position: relative;
+    z-index: 1;
+    animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .hero-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(11px, 1.5vw, 14px);
+    color: var(--mute);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-top: 24px;
+    text-align: center;
+    animation: fade-up 0.8s 0.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 40px;
+    animation: fade-up 0.8s 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 6px 14px;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .badge.green  { border-color: var(--green);  color: var(--green); }
+  .badge.cyan   { border-color: var(--cyan);   color: var(--cyan); }
+
+  .hero-terminal {
+    margin-top: 60px;
+    width: 100%;
+    max-width: 680px;
+    animation: fade-up 0.8s 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    position: relative;
+    z-index: 1;
+  }
+
+  .term-bar {
+    background: #1c1c1c;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid #333;
+  }
+
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+
+  .term-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: #555;
+    margin-left: auto;
+    margin-right: auto;
+    letter-spacing: 0.05em;
+  }
+
+  .term-body {
+    background: #111;
+    padding: 24px 28px;
+    border-radius: 0 0 8px 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    min-height: 220px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .term-line { opacity: 0; transform: translateY(4px); }
+  .term-line.show { animation: term-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+  .p { color: var(--green); }
+  .cmd { color: var(--canvas); }
+  .dim-t { color: #555; }
+  .ok { color: var(--green); }
+  .tag-c { color: var(--cyan); }
+  .warn-c { color: var(--yellow); }
+  .err-c { color: var(--red); }
+  .done-c { color: #444; }
+  .cursor-blink {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--canvas);
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+  }
+
+  /* ── FEATURES SECTION ────────────────────────────────────────── */
+  .section {
+    padding: 100px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 7vw, 80px);
+    line-height: 0.92;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2px;
+    margin-top: 60px;
+    background: var(--hair);
+  }
+
+  .feature-card {
+    background: var(--canvas);
+    padding: 36px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 0;
+    background: var(--ink);
+    transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .feature-card:hover::before { height: 100%; }
+
+  .feature-icon {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .feature-name {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .feature-desc {
+    font-size: 14px;
+    color: var(--mute);
+    line-height: 1.7;
+  }
+
+  /* ── COMMANDS SECTION ─────────────────────────────────────────── */
+  .commands-section {
+    background: var(--ink);
+    color: var(--canvas);
+    padding: 100px 40px;
+  }
+
+  .commands-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .cmd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-top: 60px;
+  }
+
+  @media (max-width: 720px) { .cmd-grid { grid-template-columns: 1fr; } }
+
+  .cmd-group-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #222;
+  }
+
+  .cmd-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  .cmd-row:last-child { border-bottom: none; }
+
+  .cmd-code {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    min-width: 160px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .cmd-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.5;
+  }
+
+  /* ── SECURITY SECTION ─────────────────────────────────────────── */
+  .security-section {
+    padding: 100px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+
+  @media (max-width: 720px) {
+    .security-section { grid-template-columns: 1fr; gap: 48px; }
+  }
+
+  .enc-box {
+    background: var(--cloud);
+    padding: 36px;
+    position: relative;
+    border-left: 3px solid var(--ink);
+  }
+
+  .enc-box pre {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--ink);
+    white-space: pre-wrap;
+    margin-top: 20px;
+  }
+
+  .enc-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .data-path-list {
+    margin-top: 24px;
+    list-style: none;
+  }
+
+  .data-path-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--hair);
+    font-size: 14px;
+  }
+
+  .data-path-list li:last-child { border-bottom: none; }
+
+  .os-name {
+    font-weight: 600;
+    min-width: 80px;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  .os-path {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--mute);
+    word-break: break-all;
+  }
+
+  /* ── INSTALL SECTION ─────────────────────────────────────────── */
+  .install-section {
+    background: var(--ink);
+    color: var(--canvas);
+    padding: 100px 40px;
+  }
+
+  .install-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .install-tabs {
+    display: flex;
+    gap: 2px;
+    margin-top: 48px;
+    background: #1a1a1a;
+    padding: 4px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    background: transparent;
+    border: none;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    background: var(--canvas);
+    color: var(--ink);
+  }
+
+  .tab-panel { display: none; margin-top: 32px; }
+  .tab-panel.active { display: block; }
+
+  .install-block {
+    background: #111;
+    padding: 28px 32px;
+    border-left: 3px solid var(--cyan);
+    margin-bottom: 20px;
+  }
+
+  .install-block-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 12px;
+  }
+
+  .install-block code {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--canvas);
+    display: block;
+    line-height: 1.8;
+  }
+
+  .copy-btn {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    background: transparent;
+    border: 1px solid #333;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .copy-btn:hover { border-color: var(--canvas); color: var(--canvas); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+  /* ── FOOTER ──────────────────────────────────────────────────── */
+  .footer {
+    background: var(--ink);
+    color: var(--canvas);
+    padding: 48px 40px;
+    border-top: 1px solid #1a1a1a;
+  }
+
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 0.02em;
+    color: var(--canvas);
+  }
+
+  .footer-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.8;
+    text-align: right;
+  }
+
+  /* ── ANIMATIONS ──────────────────────────────────────────────── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes term-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  /* ── SCROLL REVEAL ────────────────────────────────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal.d1 { transition-delay: 0.05s; }
+  .reveal.d2 { transition-delay: 0.1s; }
+  .reveal.d3 { transition-delay: 0.15s; }
+  .reveal.d4 { transition-delay: 0.2s; }
+  .reveal.d5 { transition-delay: 0.25s; }
+  .reveal.d6 { transition-delay: 0.3s; }
+
+  /* ── DIVIDER ─────────────────────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: var(--hair);
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HERO ────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-scanlines"></div>
+
+  <h1 class="hero-title">TODO</h1>
+
+  <p class="hero-sub">ultra-light · local · yours · free · open source</p>
+
+  <div class="hero-badges">
+    <span class="badge">Python 3.8+</span>
+    <span class="badge green">No Cloud</span>
+    <span class="badge cyan">Encrypted</span>
+    <span class="badge">Linux · macOS · Windows</span>
+    <span class="badge">v1.0.0</span>
+  </div>
+
+  <div class="hero-terminal">
+    <div class="term-bar">
+      <span class="dot r"></span>
+      <span class="dot y"></span>
+      <span class="dot g"></span>
+      <span class="term-title">bash — 80×24</span>
+    </div>
+    <div class="term-body" id="terminal">
+      <!-- lines injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ─────────────────────────────────────────────────────── -->
+<section class="section">
+  <p class="section-label reveal">What it does</p>
+  <h2 class="section-title reveal d1">Every feature<br>you actually need.</h2>
+
+  <div class="feature-grid">
+    <div class="feature-card reveal d1">
+      <span class="feature-icon">#</span>
+      <p class="feature-name">Nested tags</p>
+      <p class="feature-desc">Organise tasks into <code>#work #backend</code> hierarchies. Tags collapse cleanly, expand on demand.</p>
+    </div>
+    <div class="feature-card reveal d2">
+      <span class="feature-icon">!</span>
+      <p class="feature-name">Priorities &amp; due dates</p>
+      <p class="feature-desc"><code>!1</code> urgent · <code>!2</code> medium · <code>!3</code> normal. Due dates highlight red when overdue, yellow when close.</p>
+    </div>
+    <div class="feature-card reveal d3">
+      <span class="feature-icon">🔒</span>
+      <p class="feature-name">Optional encryption</p>
+      <p class="feature-desc">AES/Fernet with PBKDF2-HMAC-SHA256 (480k iterations). One command: <code>todo --encrypt</code>.</p>
+    </div>
+    <div class="feature-card reveal d4">
+      <span class="feature-icon">👤</span>
+      <p class="feature-name">Per-user isolation</p>
+      <p class="feature-desc">Each OS user has their own task file, stored in a <code>chmod 700</code> directory. No shared state.</p>
+    </div>
+    <div class="feature-card reveal d5">
+      <span class="feature-icon">↑↓</span>
+      <p class="feature-name">Interactive TUI</p>
+      <p class="feature-desc">Full arrow-key navigation, inline editing, and tag management. Works on Linux, macOS, and Windows.</p>
+    </div>
+    <div class="feature-card reveal d6">
+      <span class="feature-icon">∅</span>
+      <p class="feature-name">Zero dependencies</p>
+      <p class="feature-desc">One Python file. No frameworks, no daemons, no config. Encryption is opt-in with a single pip install.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── COMMANDS ─────────────────────────────────────────────────────── -->
+<section class="commands-section">
+  <div class="commands-inner">
+    <p class="section-label" style="color: #555;">Command reference</p>
+    <h2 class="section-title" style="color: var(--canvas);">Everything<br>in one place.</h2>
+
+    <div class="cmd-grid">
+      <div>
+        <p class="cmd-group-title">Adding &amp; viewing</p>
+        <div class="cmd-row"><code class="cmd-code">todo</code><span class="cmd-desc">Show all tasks (tags collapsed)</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo --all</code><span class="cmd-desc">Expand everything</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo -a task text</code><span class="cmd-desc">Add task to root</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo -a #work bug</code><span class="cmd-desc">Add to tag (creates if missing)</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo -a !1 @2026-06-20</code><span class="cmd-desc">Priority + due date</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo -s keyword</code><span class="cmd-desc">Search across all tags</span></div>
+      </div>
+      <div>
+        <p class="cmd-group-title">Managing &amp; removing</p>
+        <div class="cmd-row"><code class="cmd-code">todo -d 3</code><span class="cmd-desc">Toggle done on task #3</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo -e 2 new text</code><span class="cmd-desc">Edit task #2</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo -m 2 up</code><span class="cmd-desc">Reorder tasks</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo -r 3</code><span class="cmd-desc">Remove task #3</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo --rmtag #work</code><span class="cmd-desc">Remove tag + all tasks inside</span></div>
+        <div class="cmd-row"><code class="cmd-code">todo --encrypt</code><span class="cmd-desc">Enable encryption</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECURITY ─────────────────────────────────────────────────────── -->
+<section class="security-section">
+  <div>
+    <p class="section-label reveal">Security</p>
+    <h2 class="section-title reveal d1">Your data.<br>Your machine.<br>Nobody else.</h2>
+
+    <p class="reveal d2" style="margin-top: 24px; font-size: 15px; color: var(--mute); line-height: 1.8;">
+      No telemetry. No sync. No accounts. Your tasks live in a plain JSON file — or, if you opt in, in an AES-encrypted blob — on your own machine and nowhere else.
+    </p>
+
+    <ul class="data-path-list reveal d3">
+      <li>
+        <span class="os-name">Linux</span>
+        <span class="os-path">~/.local/share/todo/tasks.json</span>
+      </li>
+      <li>
+        <span class="os-name">macOS</span>
+        <span class="os-path">~/.local/share/todo/tasks.json</span>
+      </li>
+      <li>
+        <span class="os-name">Windows</span>
+        <span class="os-path">%APPDATA%\todo\tasks.json</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="reveal d2">
+    <div class="enc-box">
+      <p class="enc-label">Encryption stack</p>
+      <pre>Algorithm:   AES-128-CBC (Fernet)
+KDF:         PBKDF2-HMAC-SHA256
+Iterations:  480,000 (NIST 2023)
+Salt:        32-byte random, per-user
+Writes:      Atomic (tmp → rename)
+Permissions: chmod 600 (Unix)</pre>
+    </div>
+
+    <div style="margin-top: 20px; background: var(--cloud); padding: 28px 32px;">
+      <p class="enc-label">Enable in one step</p>
+      <pre style="font-family: 'Space Mono', monospace; font-size: 13px; margin-top: 12px; line-height: 1.8; color: var(--ink);">pip install cryptography
+todo --encrypt</pre>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── INSTALL ───────────────────────────────────────────────────────── -->
+<section class="install-section">
+  <div class="install-inner">
+    <p class="section-label" style="color: #555;">Install</p>
+    <h2 class="section-title" style="color: var(--canvas);">One command.<br>Any OS.</h2>
+
+    <div class="install-tabs">
+      <button class="tab-btn active" onclick="switchTab('linux')">Linux / macOS</button>
+      <button class="tab-btn" onclick="switchTab('windows')">Windows</button>
+      <button class="tab-btn" onclick="switchTab('manual')">Manual</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-linux">
+      <div class="install-block">
+        <p class="install-block-label">One-liner</p>
+        <code id="linux-cmd">curl -fsSL https://raw.githubusercontent.com/luuucciiffeerr/todo/main/install.sh | bash</code>
+        <button class="copy-btn" onclick="copyCode('linux-cmd', this)">Copy</button>
+      </div>
+      <div class="install-block">
+        <p class="install-block-label">Clone &amp; install</p>
+        <code>git clone https://github.com/luuucciiffeerr/todo.git
+cd todo &amp;&amp; bash install.sh</code>
+      </div>
+      <p style="font-family: 'Space Mono', monospace; font-size: 12px; color: #555; margin-top: 16px;">
+        The installer checks Python 3.8+, optionally installs cryptography, asks whether to install globally or per-user, and offers to add the bin directory to your PATH.
+      </p>
+    </div>
+
+    <div class="tab-panel" id="tab-windows">
+      <div class="install-block">
+        <p class="install-block-label">PowerShell one-liner</p>
+        <code id="win-cmd">irm https://raw.githubusercontent.com/luuucciiffeerr/todo/main/install.ps1 | iex</code>
+        <button class="copy-btn" onclick="copyCode('win-cmd', this)">Copy</button>
+      </div>
+      <div class="install-block">
+        <p class="install-block-label">Clone &amp; install</p>
+        <code>git clone https://github.com/luuucciiffeerr/todo.git
+cd todo
+.\install.ps1</code>
+      </div>
+      <p style="font-family: 'Space Mono', monospace; font-size: 12px; color: #555; margin-top: 16px;">
+        Creates <code>todo.bat</code> and <code>todo.cmd</code>, adds to PATH, supports per-user or global (admin) install.
+      </p>
+    </div>
+
+    <div class="tab-panel" id="tab-manual">
+      <div class="install-block">
+        <p class="install-block-label">Anywhere with Python on PATH</p>
+        <code># 1. Copy todo.py to a directory on your PATH
+cp todo.py ~/.local/bin/todo.py
+
+# 2. Create a launcher
+echo '#!/bin/sh' &gt; ~/.local/bin/todo
+echo 'exec python3 ~/.local/bin/todo.py "$@"' &gt;&gt; ~/.local/bin/todo
+chmod +x ~/.local/bin/todo</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">TODO</div>
+    <div class="footer-meta">
+      MIT License · v1.0.0<br>
+      Python 3.8+ · no dependencies · 100% local<br>
+      <a href="https://github.com/luuucciiffeerr/todo" style="color: #555; text-decoration: none;">github.com/luuucciiffeerr/todo</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ── Terminal animation ───────────────────────────────────────────
+  const lines = [
+    { text: '<span class="p">$</span> <span class="cmd">todo -a #work fix the CI pipeline !1 @2026-06-15</span>', delay: 600 },
+    { text: '<span class="ok">Added to [#work]: fix the CI pipeline</span>', delay: 1100 },
+    { text: '', delay: 1400 },
+    { text: '<span class="p">$</span> <span class="cmd">todo</span>', delay: 1700 },
+    { text: '  <span class="tag-c">▶ 1. #work</span> <span class="dim-t">(0/3)  ›</span>', delay: 2000 },
+    { text: '  <span class="tag-c">▶ 2. #personal</span> <span class="dim-t">(1/2)  ›</span>', delay: 2200 },
+    { text: '  <span class="dim-t">1. [ ]</span>  buy groceries', delay: 2400 },
+    { text: '  <span class="done-c">2. [x]  call the bank</span>', delay: 2600 },
+    { text: '', delay: 2900 },
+    { text: '<span class="p">$</span> <span class="cmd">todo -d 1</span>', delay: 3200 },
+    { text: '<span class="ok">Marked done: buy groceries</span>', delay: 3700 },
+    { text: '', delay: 4000 },
+    { text: '<span class="p">$</span> <span class="cmd">todo --encrypt</span>', delay: 4300 },
+    { text: '  🔒 Password: <span class="dim-t">••••••••</span>', delay: 4800 },
+    { text: '<span class="ok">✓ Data encrypted and saved.</span>', delay: 5400 },
+    { text: '', delay: 5700 },
+    { text: '<span class="p">$</span> <span class="cursor-blink"></span>', delay: 6000 },
+  ];
+
+  const terminal = document.getElementById('terminal');
+
+  lines.forEach(({ text, delay }) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'term-line show';
+      div.innerHTML = text || '&nbsp;';
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+    }, delay);
+  });
+
+  // ── Scroll reveal ────────────────────────────────────────────────
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // ── Install tabs ─────────────────────────────────────────────────
+  function switchTab(id) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + id).classList.add('active');
+  }
+
+  // ── Copy buttons ─────────────────────────────────────────────────
+  function copyCode(id, btn) {
+    const text = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
