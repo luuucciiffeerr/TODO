@@ -15,8 +15,18 @@
 
 **No accounts · No cloud · No background processes · One Python file**
 
-[Install](#install) · [Quick start](#quick-start) · [Commands](#full-command-reference) · [Encryption](#encryption) · [Website](https://luuucciiffeerr.github.io/TODO/)
+[Install](#install) · [Quick start](#quick-start) · [Commands](#full-command-reference) · [Encryption](#encryption)
 
+</div>
+
+---
+
+<div align="center">
+  <a href="https://luuucciiffeerr.github.io/TODO/" style="display: inline-block; padding: 14px 40px; background: #00c66b; color: #000; text-decoration: none; font-weight: 600; border-radius: 6px; font-size: 16px;">
+    ▶ View Animated Website — luuucciiffeerr.github.io/TODO/
+  </a>
+  <br><br>
+  <em>Animated terminal demo · scroll-reveal features · full command reference · tabbed install · encryption stack</em>
 </div>
 
 ---
